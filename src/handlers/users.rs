@@ -84,3 +84,27 @@ pub async fn update_user(
         Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
+
+pub async fn delete_user(
+    data: web::Data<AppState>,
+    path: web::Path<i32>,
+) -> impl Responder {
+    let id = path.into_inner();
+
+    // search user
+    let user = match users::Entity::find_by_id(id).one(&data.db).await {
+        Ok(Some(u)) => u,
+        Ok(None) => return HttpResponse::NotFound().body("User not found"),
+        Err(_) => return HttpResponse::InternalServerError().finish(),
+    };
+
+    // Convert to ActiveModel
+    let active_user: users::ActiveModel = user.into();
+
+    // Deletar
+    match active_user.delete(&data.db).await {
+        Ok(_) => HttpResponse::Ok().body(format!("User {} deleted", id)),
+        Err(_) => HttpResponse::InternalServerError().finish(),
+    }
+}
+
